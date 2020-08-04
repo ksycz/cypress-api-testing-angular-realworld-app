@@ -24,11 +24,26 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 
-// logging in
+// logging in headlessly
 Cypress.Commands.add("logInToApp", () => {
-    cy
-    .visit("/login")
-    .get('[placeholder="Email"]').type("thisaddressisnotreal@test.com")
-    .get('[placeholder="Password"]').type("Testing123?")
-    .get("form").submit()
+
+    const userCredentials = {
+        "user": {
+            "email": "thisaddressisnotreal@test.com",
+            "password": "Testing123?"
+        }
+    }
+
+    // we need to save our token in the local storage (you can see it in the Application / Local storage in the browser)
+    cy.request("POST", "https://conduit.productionready.io/api/users/login", userCredentials)
+        .its("body").then(body => {
+            const token = body.user.token
+            // save token as alias to use it in tests
+            cy.wrap(token).as("token")
+            cy.visit("/", {
+                onBeforeLoad (win) {
+                    win.localStorage.setItem("jwtToken", token)
+                }
+            })
+        })
 })
